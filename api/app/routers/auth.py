@@ -69,7 +69,11 @@ async def login(body: LoginBody, request: Request, response: Response):
     )
     csrf = generate_csrf()
     set_session_cookies(response, session_token, csrf)
-    return {"ok": True, "username": admin["username"]}
+    return {
+        "ok": True,
+        "username": admin["username"],
+        "id": str(admin["id"]),
+    }
 
 
 @router.post("/logout")

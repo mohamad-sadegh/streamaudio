@@ -13,7 +13,7 @@ export default function LoginPage({ onLogin }) {
     setBusy(true);
     try {
       const data = await Auth.login(username, password);
-      onLogin({ username: data.username });
+      onLogin({ username: data.username, id: data.id });
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {

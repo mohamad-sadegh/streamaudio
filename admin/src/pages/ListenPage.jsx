@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Auth, Publishers } from "../api.js";
+import { Publishers } from "../api.js";
 import { startWhep } from "../whep.js";
 import AudioVisualizer from "../components/AudioVisualizer.jsx";
 
-export default function ListenPage({ user, onLogout }) {
+export default function ListenPage() {
   const { id } = useParams();
   const [publisher, setPublisher] = useState(null);
   const [stream, setStream] = useState(null);
@@ -74,58 +74,42 @@ export default function ListenPage({ user, onLogout }) {
     }
   }
 
-  async function logout() {
-    await disconnect();
-    await Auth.logout().catch(() => {});
-    onLogout();
-  }
-
   const live = status === "connected" || status === "connecting";
 
   return (
-    <div className="app-shell listen-shell">
-      <header className="topbar">
-        <div>
-          <p className="brand">StreamAudio</p>
-          <p className="muted small">
-            <Link to="/">← Publishers</Link> · {user.username}
-          </p>
+    <main className="page listen-page">
+      <p className="muted small">
+        <Link to="/publishers">← Publishers</Link>
+      </p>
+
+      <div className="listen-hero">
+        <div className="live-meta">
+          <span className={`live-pill ${live ? "hot" : ""}`}>
+            {live ? "LIVE" : "STANDBY"}
+          </span>
+          <h1>{publisher?.label || publisher?.username || "Stream"}</h1>
+          <p className="mono muted">{publisher?.streamPath || "…"}</p>
         </div>
-        <button type="button" className="ghost" onClick={logout}>
-          Sign out
-        </button>
-      </header>
 
-      <main className="listen-stage">
-        <div className="listen-hero">
-          <div className="live-meta">
-            <span className={`live-pill ${live ? "hot" : ""}`}>
-              {live ? "LIVE" : "STANDBY"}
-            </span>
-            <h1>{publisher?.label || publisher?.username || "Stream"}</h1>
-            <p className="mono muted">{publisher?.streamPath || "…"}</p>
-          </div>
+        <AudioVisualizer stream={stream} active={Boolean(stream)} />
 
-          <AudioVisualizer stream={stream} active={Boolean(stream)} />
+        <audio ref={audioElRef} autoPlay playsInline />
 
-          <audio ref={audioElRef} autoPlay playsInline />
-
-          <div className="listen-controls">
-            {status === "idle" || status === "failed" || status === "disconnected" ? (
-              <button type="button" onClick={connect} disabled={!publisher}>
-                Start listening
-              </button>
-            ) : (
-              <button type="button" className="danger" onClick={disconnect}>
-                Stop
-              </button>
-            )}
-            <span className="muted small">Status: {status}</span>
-          </div>
-
-          {error ? <p className="error">{error}</p> : null}
+        <div className="listen-controls">
+          {status === "idle" || status === "failed" || status === "disconnected" ? (
+            <button type="button" onClick={connect} disabled={!publisher}>
+              Start listening
+            </button>
+          ) : (
+            <button type="button" className="danger" onClick={disconnect}>
+              Stop
+            </button>
+          )}
+          <span className="muted small">Status: {status}</span>
         </div>
-      </main>
-    </div>
+
+        {error ? <p className="error">{error}</p> : null}
+      </div>
+    </main>
   );
 }

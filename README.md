@@ -98,14 +98,14 @@ Open `https://YOUR_DOMAIN`, sign in with `ADMIN_BOOTSTRAP_USER` / `ADMIN_BOOTSTR
 | `ADMIN_LOGIN_IP_ALLOWLIST` | Optional comma-separated IPs for login |
 | `COOKIE_SECURE` | `true` in production (HTTPS) |
 
-## Publisher credentials (for a future Android / WHIP client)
+## Publisher credentials (Android WHIP client)
 
 After **Create access** or **Rotate** in the admin panel (secret shown once):
 
 - **WHIP URL:** `https://DOMAIN/live/{publisherId}/whip`
 - **Auth:** `Authorization: Bearer username:secret`  
   or HTTP Basic `username` / `secret`
-- **QR payload** (JSON, scan with the Android app):
+- **QR payload** (JSON — use **Live → Scan QR** in the Android app):
 
 ```json
 {
@@ -116,6 +116,13 @@ After **Create access** or **Rotate** in the admin panel (secret shown once):
   "whipUrl": "https://DOMAIN/live/{publisherId}/whip"
 }
 ```
+
+### Android app flow
+
+1. Open the app → **Live**
+2. **Scan QR** on the one-time secret banner in admin
+3. Tap **Go live** (mic + notification permission)
+4. In admin, open **Listen** on that publisher to hear the stream
 
 ## Admin live listen
 
@@ -205,6 +212,6 @@ docker compose logs --tail=20 mediamtx
 
 ## Out of scope (this phase)
 
-- Android WHIP publisher wiring
+- Android app: scan admin QR → WHIP live audio publish
 - Multi-listener user accounts
 - TURN server (add if ICE fails behind strict NAT)

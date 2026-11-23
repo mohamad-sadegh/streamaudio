@@ -60,3 +60,15 @@ export const Publishers = {
   listenToken: (id) =>
     api(`/api/streams/${id}/listen-token`, { method: "POST", body: {} }),
 };
+
+export const Users = {
+  list: () => api("/api/users"),
+  create: (username, password) =>
+    api("/api/users", { method: "POST", body: { username, password } }),
+  update: (id, patch) => api(`/api/users/${id}`, { method: "PATCH", body: patch }),
+  remove: (id) => api(`/api/users/${id}`, { method: "DELETE" }),
+};
+
+export const Roles = {
+  list: () => api("/api/roles"),
+};
