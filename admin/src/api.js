@@ -1,0 +1,62 @@
+function csrfToken() {
+  const match = document.cookie.match(/(?:^|; )sa_csrf=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+export async function api(path, options = {}) {
+  const headers = {
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(options.headers || {}),
+  };
+
+  const method = (options.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") {
+    headers["X-CSRF-Token"] = csrfToken();
+  }
+
+  const res = await fetch(path, {
+    ...options,
+    headers,
+    credentials: "include",
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
+  }
+
+  if (!res.ok) {
+    const err = new Error(data?.error || `Request failed (${res.status})`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
+}
+
+export const Auth = {
+  me: () => api("/api/auth/me"),
+  login: (username, password) =>
+    api("/api/auth/login", { method: "POST", body: { username, password } }),
+  logout: () => api("/api/auth/logout", { method: "POST", body: {} }),
+};
+
+export const Publishers = {
+  list: () => api("/api/publishers"),
+  create: (username, label) =>
+    api("/api/publishers", { method: "POST", body: { username, label } }),
+  update: (id, patch) =>
+    api(`/api/publishers/${id}`, { method: "PATCH", body: patch }),
+  rotate: (id) =>
+    api(`/api/publishers/${id}/rotate-secret`, { method: "POST", body: {} }),
+  remove: (id) => api(`/api/publishers/${id}`, { method: "DELETE" }),
+  listenToken: (id) =>
+    api(`/api/streams/${id}/listen-token`, { method: "POST", body: {} }),
+};

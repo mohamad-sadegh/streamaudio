@@ -1,0 +1,50 @@
+###############################################
+# MediaMTX — low-latency WebRTC (WHIP/WHEP)
+###############################################
+
+logLevel: info
+logDestinations: [stdout]
+
+# Control API — internal only (docker network)
+api: true
+apiAddress: :9997
+
+metrics: false
+pprof: false
+
+# Auth delegated to our API
+authMethod: http
+authHTTPAddress: http://api:3000/api/mediamtx/auth
+authHTTPExclude:
+  - action: api
+  - action: metrics
+  - action: pprof
+
+# Disable public-facing legacy protocols
+rtsp: false
+rtmp: false
+hls: false
+srt: false
+
+# WebRTC
+webrtc: true
+webrtcAddress: :8889
+webrtcEncryption: false
+webrtcAllowOrigins: ["*"]
+webrtcTrustedProxies: []
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8189
+webrtcIPsFromInterfaces: true
+webrtcIPsFromInterfacesList: []
+# Populated via MTX_WEBRTCADDITIONALHOSTS (domain / public IP)
+webrtcAdditionalHosts: []
+webrtcICEServers2:
+  - url: stun:stun.l.google.com:19302
+
+pathDefaults:
+  source: publisher
+  record: false
+
+paths:
+  # Applied to every path (e.g. live/{publisherId})
+  all_others:

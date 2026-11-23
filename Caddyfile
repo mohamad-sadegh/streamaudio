@@ -1,0 +1,29 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "camera=(), geolocation=(), microphone=()"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	# MediaMTX WebRTC HTTP (WHIP/WHEP + SDP): paths like /live/{id}/whip
+	handle /live/* {
+		reverse_proxy mediamtx:8889
+	}
+
+	handle {
+		reverse_proxy admin:80
+	}
+}
