@@ -1,0 +1,44 @@
+# Use this when ANOTHER Caddy container already owns :80/:443
+# (e.g. server-caddy-1). Do NOT run: docker compose --profile caddy
+#
+# Setup:
+#   1. docker compose up -d --build   (in this StreamAudio Server dir)
+#   2. ./deploy/wire-existing-caddy.sh server-caddy-1
+#   3. Replace that Caddy's site block for DOMAIN with the block below
+#      (or copy this whole file if it is dedicated to StreamAudio).
+#   4. Ensure the bind-mounted Caddyfile path EXISTS as a FILE on the host
+#      (missing path → Docker creates a directory → container won't start).
+#   5. docker restart <caddy-container>
+#
+# Upstream names are stable network aliases from docker-compose.yml
+# (streamaudio-api / streamaudio-admin / streamaudio-mediamtx).
+# Do NOT use bare api / admin / mediamtx — those collide with other Compose projects.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "camera=(), geolocation=(), microphone=()"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy streamaudio-api:3000
+	}
+
+	handle /live/* {
+		reverse_proxy streamaudio-mediamtx:8889
+	}
+
+	handle {
+		reverse_proxy streamaudio-admin:80
+	}
+}

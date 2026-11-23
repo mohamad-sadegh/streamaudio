@@ -1,3 +1,6 @@
+# Fixed project name → containers are always streamaudio-api-1, etc.
+name: streamaudio
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -48,11 +51,13 @@ services:
       timeout: 5s
       retries: 30
       start_period: 120s
-    # Host nginx / existing SSL proxy can reach the API here
+    # Host / existing TLS proxy (nginx, aaPanel, another Caddy) → API
     ports:
       - "127.0.0.1:3000:3000"
     networks:
-      - internal
+      internal:
+        aliases:
+          - streamaudio-api
 
   mediamtx:
     image: bluenviron/mediamtx:1.12.3
@@ -69,7 +74,9 @@ services:
       api:
         condition: service_started
     networks:
-      - internal
+      internal:
+        aliases:
+          - streamaudio-mediamtx
 
   admin:
     build: ./admin
@@ -77,10 +84,14 @@ services:
     ports:
       - "127.0.0.1:8080:80"
     networks:
-      - internal
+      internal:
+        aliases:
+          - streamaudio-admin
 
-  # Optional: use only if nothing else binds host :80/:443
+  # ONLY if nothing else binds host :80/:443
   #   docker compose --profile caddy up -d
+  # If you already have server-caddy / nginx / aaPanel, do NOT enable this profile.
+  # Use deploy/existing-docker-caddy.Caddyfile instead.
   caddy:
     profiles: ["caddy"]
     image: caddy:2.9-alpine
@@ -111,3 +122,4 @@ volumes:
 networks:
   internal:
     driver: bridge
+    name: streamaudio_internal

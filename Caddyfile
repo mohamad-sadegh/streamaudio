@@ -1,3 +1,9 @@
+# Used only with: docker compose --profile caddy up -d
+# Same Docker network as api/admin/mediamtx → short service names are correct here.
+#
+# If another process already owns :80/:443, do NOT use the caddy profile.
+# Use deploy/existing-docker-caddy.Caddyfile (or nginx / host Caddy) instead.
+
 {
 	email {$ACME_EMAIL}
 }

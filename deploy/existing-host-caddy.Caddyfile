@@ -1,0 +1,21 @@
+# Use this when Caddy runs on the HOST (not in Docker), or can reach
+# host loopback. StreamAudio publishes:
+#   127.0.0.1:3000 api
+#   127.0.0.1:8080 admin
+#   127.0.0.1:8889 mediamtx
+
+{$DOMAIN} {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	handle /live/* {
+		reverse_proxy 127.0.0.1:8889
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8080
+	}
+}
