@@ -1,0 +1,37 @@
+# For /root/Server/Caddyfile used by server-caddy-1 when StreamAudio
+# runs as a separate Compose project (streamaudio_* containers).
+#
+# Prerequisite:
+#   docker network connect streamaudio_internal server-caddy-1
+#
+# Use explicit container names so DNS does not hit stale
+# api/admin/mediamtx names on server_internal.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "camera=(), geolocation=(), microphone=()"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy streamaudio-api-1:3000
+	}
+
+	handle /live/* {
+		reverse_proxy streamaudio-mediamtx-1:8889
+	}
+
+	handle {
+		reverse_proxy streamaudio-admin-1:80
+	}
+}
