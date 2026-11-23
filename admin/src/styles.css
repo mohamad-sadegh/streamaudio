@@ -376,10 +376,20 @@ label {
   text-align: center;
 }
 
+.secret-qr-wrap {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+}
+
 .secret-qr {
   display: block;
-  border-radius: 10px;
-  background: #e8f2ee;
+  width: 300px;
+  height: 300px;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 10px;
+  box-sizing: content-box;
 }
 
 .table {

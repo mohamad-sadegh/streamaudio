@@ -105,22 +105,16 @@ After **Create access** or **Rotate** in the admin panel (secret shown once):
 - **WHIP URL:** `https://DOMAIN/live/{publisherId}/whip`
 - **Auth:** `Authorization: Bearer username:secret`  
   or HTTP Basic `username` / `secret`
-- **QR payload** (JSON — use **Live → Scan QR** in the Android app):
+- **QR / share link** (use **Live → Scan QR** or **Paste share link** in the Android app):
 
-```json
-{
-  "v": 1,
-  "type": "streamaudio.publish",
-  "username": "device1",
-  "secret": "<shown-once>",
-  "whipUrl": "https://DOMAIN/live/{publisherId}/whip"
-}
+```text
+streamaudio://publish?u=device1&s=<shown-once>&w=https%3A%2F%2FDOMAIN%2Flive%2F{publisherId}%2Fwhip
 ```
 
 ### Android app flow
 
 1. Open the app → **Live**
-2. **Scan QR** on the one-time secret banner in admin
+2. Either scan the admin QR, or tap **Copy share link** in admin then **Paste share link** in the app
 3. Tap **Go live** (mic + notification permission)
 4. In admin, open **Listen** on that publisher to hear the stream
 

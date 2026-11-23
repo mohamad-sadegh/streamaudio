@@ -106,7 +106,8 @@ export default function PublishersPage() {
             <div className="secret-banner-main">
               <strong>Copy now — secret is shown once</strong>
               <p className="muted small">
-                Scan the QR with the Android app, or copy the values below.
+                Scan the QR in the Android app, or use Copy share link then Paste
+                in the app.
               </p>
               <p>
                 User: <code>{secretReveal.username}</code>
