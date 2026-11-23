@@ -21,7 +21,8 @@ hls: no
 webrtc: yes
 webrtcAddress: :8889
 webrtcEncryption: no
-webrtcAllowOrigins: ["*"]
+# MediaMTX 1.12.x uses singular webrtcAllowOrigin (list form is newer only)
+webrtcAllowOrigin: "*"
 webrtcLocalUDPAddress: :8189
 webrtcLocalTCPAddress: :8189
 webrtcIPsFromInterfaces: yes

@@ -1,0 +1,29 @@
+# Snippet for an EXISTING host Caddy (e.g. container server-caddy-1)
+# that already owns :80/:443. Do NOT also run: docker compose --profile caddy
+#
+# Prerequisites — StreamAudio must publish localhost ports:
+#   127.0.0.1:8080 -> admin
+#   127.0.0.1:3000 -> api
+#   127.0.0.1:8889 -> mediamtx
+#
+# Merge this site block into the Caddyfile used by server-caddy, then reload.
+
+st.fifa2012.ir {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	handle /live/* {
+		reverse_proxy 127.0.0.1:8889
+		transport http {
+			read_timeout 3600s
+			write_timeout 3600s
+		}
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8080
+	}
+}

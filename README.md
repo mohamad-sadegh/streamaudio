@@ -137,27 +137,39 @@ docker compose down
 
 ## Troubleshooting: login returns 502
 
-`502` means Caddy reached the site but the **API container is down** (or still starting).
+`502` means the public reverse proxy cannot reach the **API** (API may still be healthy inside Docker).
 
 ```bash
 cd Server
 docker compose ps
 docker compose logs --tail=100 api
+curl -sS http://127.0.0.1:3000/api/health || echo "host cannot reach API"
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -iE 'caddy|stream'
 ```
 
 Common causes:
 
-1. **Missing `.env`** — `cp .env.example .env` and fill values on the server.
-2. **Wrong DB host in `DATABASE_URL`** — inside Docker use host `postgres`, not `localhost`. Prefer leaving `DATABASE_URL` empty and set only `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`.
-3. **Empty `JWT_SECRET`** — API refuses to start.
-4. **`$` in secrets** — Docker Compose interpolates `$`. Use `$$` for a literal dollar sign, or generate secrets without `$`.
-5. Check logs: `docker compose logs --tail=200 api`
+1. **Another Caddy already owns :80/:443** (e.g. `server-caddy-1`) — do **not** use `--profile caddy`. Keep StreamAudio on localhost ports and point the existing Caddy at them. Snippet: [`deploy/caddy-st.fifa2012.ir.Caddyfile`](deploy/caddy-st.fifa2012.ir.Caddyfile). Then: `docker compose up -d` (no caddy profile) and confirm `docker port` shows `127.0.0.1:3000` / `8080` / `8889`.
+2. **Missing `.env`** — `cp .env.example .env` and fill values on the server.
+3. **Wrong DB host in `DATABASE_URL`** — inside Docker use host `postgres`, not `localhost`. Prefer leaving `DATABASE_URL` empty and set only `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`.
+4. **Empty `JWT_SECRET`** — API refuses to start.
+5. **`$` in secrets** — Docker Compose interpolates `$`. Use `$$` for a literal dollar sign, or generate secrets without `$`.
+6. Check logs: `docker compose logs --tail=200 api`
 
 Rebuild after pulling fixes:
 
 ```bash
 docker compose up -d --build --force-recreate
 docker compose logs -f api
+```
+
+### MediaMTX: `unknown field "webrtcAllowOrigins"`
+
+Pinned image `bluenviron/mediamtx:1.12.3` expects singular `webrtcAllowOrigin`. Pull the updated `mediamtx/mediamtx.yml` and recreate:
+
+```bash
+docker compose up -d --force-recreate mediamtx
+docker compose logs --tail=20 mediamtx
 ```
 
 ## Out of scope (this phase)
