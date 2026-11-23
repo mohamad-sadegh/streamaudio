@@ -36,7 +36,7 @@ def _rate_limit_login(ip: str) -> None:
     while q and now - q[0] > _LOGIN_WINDOW:
         q.popleft()
     if len(q) >= _LOGIN_LIMIT:
-        raise HTTPException(status_code=429, detail="Too many login attempts")
+        raise HTTPException(status_code=429, detail="تلاش‌های ورود بیش از حد")
     q.append(now)
 
 
@@ -44,21 +44,21 @@ def _rate_limit_login(ip: str) -> None:
 async def login(body: LoginBody, request: Request, response: Response):
     ip = client_ip(request)
     if not is_ip_allowed(ip):
-        raise HTTPException(status_code=403, detail="Login not allowed from this IP")
+        raise HTTPException(status_code=403, detail="ورود از این IP مجاز نیست")
 
     _rate_limit_login(ip)
 
     username = body.username.strip()
     password = body.password
     if not username or not password:
-        raise HTTPException(status_code=400, detail="Username and password required")
+        raise HTTPException(status_code=400, detail="نام کاربری و رمز عبور الزامی است")
 
     admin = await db.fetch_one(
         "SELECT id, username, password_hash FROM admins WHERE username = %s",
         (username,),
     )
     if not admin or not verify_password(admin["password_hash"], password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="اطلاعات ورود نادرست است")
 
     session_token = sign_session(
         {

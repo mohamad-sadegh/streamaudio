@@ -52,7 +52,7 @@ async def lifespan(_app: FastAPI):
     await db.close_pool()
 
 
-app = FastAPI(title="StreamAudio API", docs_url=None, redoc_url=None, lifespan=lifespan)
+app = FastAPI(title="API پژواک", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 
 @app.exception_handler(HTTPException)
@@ -69,7 +69,7 @@ async def http_exception_handler(_request: Request, exc: HTTPException):
 async def validation_exception_handler(_request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=400,
-        content={"error": "Invalid request", "details": exc.errors()},
+        content={"error": "درخواست نامعتبر است", "details": exc.errors()},
     )
 
 

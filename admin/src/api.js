@@ -32,7 +32,13 @@ export async function api(path, options = {}) {
   }
 
   if (!res.ok) {
-    const err = new Error(data?.error || `Request failed (${res.status})`);
+    const detail = data?.detail;
+    const detailText = Array.isArray(detail)
+      ? detail.map((d) => d?.msg || d).join("، ")
+      : detail;
+    const err = new Error(
+      data?.error || detailText || `درخواست ناموفق بود (${res.status})`,
+    );
     err.status = res.status;
     err.data = data;
     throw err;

@@ -117,21 +117,21 @@ def require_admin(request: Request) -> dict[str, Any]:
     settings = get_settings()
     token = request.cookies.get(settings.cookie_name)
     if not token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail="غیرمجاز")
 
     try:
         payload = verify_session(token, settings)
     except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Unauthorized") from None
+        raise HTTPException(status_code=401, detail="غیرمجاز") from None
 
     if payload.get("typ") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail="غیرمجاز")
 
     method = request.method.upper()
     if method not in {"GET", "HEAD", "OPTIONS"}:
         csrf_header = request.headers.get("x-csrf-token")
         csrf_cookie = request.cookies.get(settings.csrf_cookie_name)
         if not csrf_header or not csrf_cookie or csrf_header != csrf_cookie:
-            raise HTTPException(status_code=403, detail="CSRF validation failed")
+            raise HTTPException(status_code=403, detail="اعتبارسنجی CSRF ناموفق بود")
 
     return payload

@@ -84,11 +84,11 @@ async def create_publisher(
 ):
     clean_user = body.username.strip().lower()
     if not clean_user:
-        raise HTTPException(status_code=400, detail="username is required")
+        raise HTTPException(status_code=400, detail="نام کاربری الزامی است")
     if not USERNAME_RE.match(clean_user):
         raise HTTPException(
             status_code=400,
-            detail="username must be 2-32 chars: lowercase letters, digits, _ or -",
+            detail="نام کاربری باید ۲ تا ۳۲ کاراکتر باشد: حروف کوچک، رقم، _ یا -",
         )
 
     pub_id = str(uuid.uuid4())
@@ -109,7 +109,7 @@ async def create_publisher(
             )
             row = await cur.fetchone()
     except UniqueViolation:
-        raise HTTPException(status_code=409, detail="Username already exists") from None
+        raise HTTPException(status_code=409, detail="این نام کاربری از قبل وجود دارد") from None
 
     return {"publisher": public_publisher(row, secret, False)}
 
@@ -131,7 +131,7 @@ async def patch_publisher(
         values.append(body.enabled)
 
     if not fields:
-        raise HTTPException(status_code=400, detail="No changes")
+        raise HTTPException(status_code=400, detail="تغییری نیست")
 
     fields.append("updated_at = NOW()")
     values.append(publisher_id)
@@ -145,7 +145,7 @@ async def patch_publisher(
         tuple(values),
     )
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="پیدا نشد")
     return {"publisher": public_publisher(row)}
 
 
@@ -162,7 +162,7 @@ async def rotate_secret(publisher_id: str, _admin: dict = Depends(require_admin)
         (secret_hash, publisher_id),
     )
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="پیدا نشد")
     return {"publisher": public_publisher(row, secret)}
 
 
@@ -170,7 +170,7 @@ async def rotate_secret(publisher_id: str, _admin: dict = Depends(require_admin)
 async def delete_publisher(publisher_id: str, _admin: dict = Depends(require_admin)):
     count = await db.execute("DELETE FROM publishers WHERE id = %s", (publisher_id,))
     if count == 0:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="پیدا نشد")
     return {"ok": True}
 
 
@@ -182,9 +182,9 @@ async def listen_token(publisher_id: str, admin: dict = Depends(require_admin)):
         (publisher_id,),
     )
     if not pub:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="پیدا نشد")
     if not pub["enabled"]:
-        raise HTTPException(status_code=403, detail="Publisher disabled")
+        raise HTTPException(status_code=403, detail="ناشر غیرفعال است")
 
     token = sign_listen_token(
         publisher_id=str(pub["id"]),

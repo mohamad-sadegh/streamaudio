@@ -5,15 +5,15 @@ import { Roles } from "../api.js";
 const FALLBACK = [
   {
     id: "admin",
-    name: "Admin",
+    name: "مدیر",
     description:
-      "Panel login account. Can manage publishers, users, and listen to streams.",
+      "حساب ورود به پنل. می‌تواند ناشران و کاربران را مدیریت کند و به استریم‌ها گوش دهد.",
   },
   {
     id: "publisher",
-    name: "Publisher",
+    name: "ناشر",
     description:
-      "Device credential for WHIP publish. Not a panel login — create via Publishers.",
+      "اعتبارنامه دستگاه برای انتشار WHIP. ورود به پنل نیست — از بخش ناشران بسازید.",
   },
 ];
 
@@ -32,10 +32,8 @@ export default function RolesPage() {
   return (
     <main className="page">
       <section className="panel">
-        <h1>Roles</h1>
-        <p className="muted">
-          Fixed system roles. Custom roles are not supported.
-        </p>
+        <h1>نقش‌ها</h1>
+        <p className="muted">نقش‌های ثابت سیستم. نقش سفارشی پشتیبانی نمی‌شود.</p>
 
         {error ? <p className="error">{error}</p> : null}
 
@@ -49,12 +47,12 @@ export default function RolesPage() {
               <p className="muted">{role.description}</p>
               {role.id === "admin" ? (
                 <Link className="btn-link" to="/users">
-                  Manage users
+                  مدیریت کاربران
                 </Link>
               ) : null}
               {role.id === "publisher" ? (
                 <Link className="btn-link" to="/publishers">
-                  Create publisher
+                  ایجاد ناشر
                 </Link>
               ) : null}
             </article>

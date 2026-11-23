@@ -38,7 +38,7 @@ export async function startWhep({
   if (!res.ok) {
     pc.close();
     const text = await res.text();
-    throw new Error(`WHEP failed (${res.status}): ${text || res.statusText}`);
+    throw new Error(`اتصال WHEP ناموفق بود (${res.status}): ${text || res.statusText}`);
   }
 
   const answer = await res.text();

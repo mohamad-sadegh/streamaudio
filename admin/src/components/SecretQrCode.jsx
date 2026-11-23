@@ -34,7 +34,7 @@ export default function SecretQrCode({ value, size = 300 }) {
         light: "#ffffff",
       },
     }).catch((err) => {
-      if (!cancelled) setError(err.message || "QR failed");
+      if (!cancelled) setError(err.message || "ساخت QR ناموفق بود");
     });
 
     return () => {
@@ -48,12 +48,12 @@ export default function SecretQrCode({ value, size = 300 }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError("Could not copy — select and copy manually");
+      setError("کپی ممکن نشد — دستی انتخاب و کپی کنید");
     }
   }
 
   if (error) {
-    return <p className="error small">Could not render QR: {error}</p>;
+    return <p className="error small">نمایش QR ممکن نشد: {error}</p>;
   }
 
   return (
@@ -63,10 +63,10 @@ export default function SecretQrCode({ value, size = 300 }) {
         className="secret-qr"
         width={size}
         height={size}
-        aria-label="Scan with Android app to import publish credentials"
+        aria-label="اسکن با اپ اندروید برای ورود اعتبارنامه انتشار"
       />
       <button type="button" className="ghost" onClick={copyPayload}>
-        {copied ? "Copied" : "Copy share link"}
+        {copied ? "کپی شد" : "کپی لینک اشتراک"}
       </button>
     </div>
   );

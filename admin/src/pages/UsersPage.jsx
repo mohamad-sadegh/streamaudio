@@ -63,7 +63,7 @@ export default function UsersPage({ user }) {
         patch.password = editPassword;
       }
       if (Object.keys(patch).length === 0) {
-        setError("No changes");
+        setError("تغییری نیست");
         return;
       }
       await Users.update(editId, patch);
@@ -77,7 +77,7 @@ export default function UsersPage({ user }) {
   }
 
   async function remove(id) {
-    if (!confirm("Delete this admin user permanently?")) return;
+    if (!confirm("این کاربر مدیر برای همیشه حذف شود؟")) return;
     setError("");
     try {
       await Users.remove(id);
@@ -91,15 +91,15 @@ export default function UsersPage({ user }) {
   return (
     <main className="page">
       <section className="panel">
-        <h1>Users</h1>
+        <h1>کاربران</h1>
         <p className="muted">
-          Panel login accounts with the admin role. Publishers are device
-          credentials managed separately.
+          حساب‌های ورود به پنل با نقش مدیر. ناشران اعتبارنامه دستگاه هستند و جداگانه
+          مدیریت می‌شوند.
         </p>
 
         <form className="create-form users-form" onSubmit={createUser}>
           <input
-            placeholder="username"
+            placeholder="نام کاربری"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -107,7 +107,7 @@ export default function UsersPage({ user }) {
           />
           <input
             type="password"
-            placeholder="password (min 8)"
+            placeholder="رمز عبور (حداقل ۸ کاراکتر)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -115,7 +115,7 @@ export default function UsersPage({ user }) {
             autoComplete="new-password"
           />
           <button type="submit" disabled={busy}>
-            Create user
+            ایجاد کاربر
           </button>
         </form>
 
@@ -123,7 +123,7 @@ export default function UsersPage({ user }) {
 
         <div className="table">
           {users.length === 0 ? (
-            <p className="muted">No users yet.</p>
+            <p className="muted">هنوز کاربری نیست.</p>
           ) : (
             users.map((u) => (
               <article key={u.id} className="row">
@@ -137,7 +137,7 @@ export default function UsersPage({ user }) {
                     />
                     <input
                       type="password"
-                      placeholder="new password (optional)"
+                      placeholder="رمز جدید (اختیاری)"
                       value={editPassword}
                       onChange={(e) => setEditPassword(e.target.value)}
                       minLength={8}
@@ -145,10 +145,10 @@ export default function UsersPage({ user }) {
                     />
                     <div className="row-actions">
                       <button type="submit" disabled={busy}>
-                        Save
+                        ذخیره
                       </button>
                       <button type="button" className="ghost" onClick={cancelEdit}>
-                        Cancel
+                        انصراف
                       </button>
                     </div>
                   </form>
@@ -157,21 +157,21 @@ export default function UsersPage({ user }) {
                     <div className="row-main">
                       <div className="row-title">
                         <strong>{u.username}</strong>
-                        <span className="tag">{u.role}</span>
+                        <span className="tag">{u.role === "admin" ? "مدیر" : u.role}</span>
                         {u.id === user?.id ? (
-                          <span className="tag">you</span>
+                          <span className="tag">شما</span>
                         ) : null}
                       </div>
                       <p className="muted small">
-                        Created{" "}
+                        ایجاد شده{" "}
                         {u.createdAt
-                          ? new Date(u.createdAt).toLocaleString()
+                          ? new Date(u.createdAt).toLocaleString("fa-IR")
                           : "—"}
                       </p>
                     </div>
                     <div className="row-actions">
                       <button type="button" className="ghost" onClick={() => startEdit(u)}>
-                        Edit
+                        ویرایش
                       </button>
                       <button
                         type="button"
@@ -179,7 +179,7 @@ export default function UsersPage({ user }) {
                         onClick={() => remove(u.id)}
                         disabled={u.id === user?.id}
                       >
-                        Delete
+                        حذف
                       </button>
                     </div>
                   </>

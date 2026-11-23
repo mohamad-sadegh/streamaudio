@@ -15,7 +15,7 @@ export default function LoginPage({ onLogin }) {
       const data = await Auth.login(username, password);
       onLogin({ username: data.username, id: data.id });
     } catch (err) {
-      setError(err.message || "Login failed");
+      setError(err.message || "ورود ناموفق بود");
     } finally {
       setBusy(false);
     }
@@ -25,12 +25,12 @@ export default function LoginPage({ onLogin }) {
     <div className="login-shell">
       <div className="login-atmosphere" aria-hidden />
       <form className="login-panel" onSubmit={submit}>
-        <p className="brand">StreamAudio</p>
-        <h1>Admin sign in</h1>
-        <p className="muted">Access is invite-only. No self-registration.</p>
+        <p className="brand">پژواک</p>
+        <h1>ورود مدیر</h1>
+        <p className="muted">دسترسی فقط با دعوت است. ثبت‌نام عمومی وجود ندارد.</p>
 
         <label>
-          Username
+          نام کاربری
           <input
             autoComplete="username"
             value={username}
@@ -40,7 +40,7 @@ export default function LoginPage({ onLogin }) {
         </label>
 
         <label>
-          Password
+          رمز عبور
           <input
             type="password"
             autoComplete="current-password"
@@ -53,7 +53,7 @@ export default function LoginPage({ onLogin }) {
         {error ? <p className="error">{error}</p> : null}
 
         <button type="submit" disabled={busy}>
-          {busy ? "Signing in…" : "Sign in"}
+          {busy ? "در حال ورود…" : "ورود"}
         </button>
       </form>
     </div>

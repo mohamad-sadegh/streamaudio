@@ -20,13 +20,13 @@ MIN_PASSWORD_LEN = 8
 FIXED_ROLES = [
     {
         "id": "admin",
-        "name": "Admin",
-        "description": "Panel login account. Can manage publishers, users, and listen to streams.",
+        "name": "مدیر",
+        "description": "حساب ورود به پنل. می‌تواند ناشران و کاربران را مدیریت کند و به استریم‌ها گوش دهد.",
     },
     {
         "id": "publisher",
-        "name": "Publisher",
-        "description": "Device credential for WHIP publish. Not a panel login — create via Publishers.",
+        "name": "ناشر",
+        "description": "اعتبارنامه دستگاه برای انتشار WHIP. ورود به پنل نیست — از بخش ناشران بسازید.",
     },
 ]
 
@@ -53,11 +53,11 @@ def public_user(row: dict[str, Any]) -> dict[str, Any]:
 def _validate_username(raw: str) -> str:
     clean = raw.strip()
     if not clean:
-        raise HTTPException(status_code=400, detail="username is required")
+        raise HTTPException(status_code=400, detail="نام کاربری الزامی است")
     if not USERNAME_RE.match(clean):
         raise HTTPException(
             status_code=400,
-            detail="username must be 2-32 chars: letters, digits, _, ., or -",
+            detail="نام کاربری باید ۲ تا ۳۲ کاراکتر باشد: حروف، رقم، _، . یا -",
         )
     return clean
 
@@ -66,7 +66,7 @@ def _validate_password(password: str) -> str:
     if not password or len(password) < MIN_PASSWORD_LEN:
         raise HTTPException(
             status_code=400,
-            detail=f"password must be at least {MIN_PASSWORD_LEN} characters",
+            detail=f"رمز عبور باید حداقل {MIN_PASSWORD_LEN} کاراکتر باشد",
         )
     return password
 
@@ -107,7 +107,7 @@ async def create_user(body: CreateUserBody, _admin: dict = Depends(require_admin
             )
             row = await cur.fetchone()
     except UniqueViolation:
-        raise HTTPException(status_code=409, detail="Username already exists") from None
+        raise HTTPException(status_code=409, detail="این نام کاربری از قبل وجود دارد") from None
 
     return {"user": public_user(row)}
 
@@ -129,7 +129,7 @@ async def patch_user(
         values.append(hash_password(_validate_password(body.password)))
 
     if not fields:
-        raise HTTPException(status_code=400, detail="No changes")
+        raise HTTPException(status_code=400, detail="تغییری نیست")
 
     values.append(user_id)
 
@@ -143,23 +143,23 @@ async def patch_user(
             tuple(values),
         )
     except UniqueViolation:
-        raise HTTPException(status_code=409, detail="Username already exists") from None
+        raise HTTPException(status_code=409, detail="این نام کاربری از قبل وجود دارد") from None
 
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="پیدا نشد")
     return {"user": public_user(row)}
 
 
 @router.delete("/api/users/{user_id}")
 async def delete_user(user_id: str, admin: dict = Depends(require_admin)):
     if str(admin.get("sub")) == user_id:
-        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+        raise HTTPException(status_code=400, detail="نمی‌توانید حساب خودتان را حذف کنید")
 
     count_row = await db.fetch_one("SELECT COUNT(*)::int AS n FROM admins")
     if count_row and count_row["n"] <= 1:
-        raise HTTPException(status_code=400, detail="Cannot delete the last admin")
+        raise HTTPException(status_code=400, detail="نمی‌توان آخرین مدیر را حذف کرد")
 
     deleted = await db.execute("DELETE FROM admins WHERE id = %s", (user_id,))
     if deleted == 0:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="پیدا نشد")
     return {"ok": True}

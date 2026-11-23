@@ -42,7 +42,7 @@ export default function PublishersPage() {
   }
 
   async function rotate(id) {
-    if (!confirm("Rotate stream secret? The old secret stops working immediately.")) {
+    if (!confirm("رمز استریم عوض شود؟ رمز قبلی فوراً از کار می‌افتد.")) {
       return;
     }
     try {
@@ -64,7 +64,7 @@ export default function PublishersPage() {
   }
 
   async function remove(id) {
-    if (!confirm("Delete this publisher permanently?")) return;
+    if (!confirm("این ناشر برای همیشه حذف شود؟")) return;
     try {
       await Publishers.remove(id);
       await refresh();
@@ -76,26 +76,26 @@ export default function PublishersPage() {
   return (
     <main className="page">
       <section className="panel">
-        <h1>Publishers</h1>
+        <h1>ناشران</h1>
         <p className="muted">
-          Create credentials for devices that publish live audio. Only admins can
-          listen.
+          برای دستگاه‌هایی که صدای زنده منتشر می‌کنند، اعتبارنامه بسازید. فقط مدیران
+          می‌توانند گوش دهند.
         </p>
 
         <form className="create-form" onSubmit={createPublisher}>
           <input
-            placeholder="username"
+            placeholder="نام کاربری"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
           />
           <input
-            placeholder="label (optional)"
+            placeholder="برچسب (اختیاری)"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
           />
           <button type="submit" disabled={busy}>
-            Create access
+            ایجاد دسترسی
           </button>
         </form>
 
@@ -104,34 +104,34 @@ export default function PublishersPage() {
         {secretReveal?.secret ? (
           <div className="secret-banner">
             <div className="secret-banner-main">
-              <strong>Copy now — secret is shown once</strong>
+              <strong>همین حالا کپی کنید — رمز فقط یک‌بار نمایش داده می‌شود</strong>
               <p className="muted small">
-                Scan the QR in the Android app, or use Copy share link then Paste
-                in the app.
+                در اپ اندروید QR را اسکن کنید، یا «کپی لینک اشتراک» را بزنید و در اپ
+                بچسبانید.
               </p>
               <p>
-                User: <code>{secretReveal.username}</code>
+                کاربر: <code className="mono">{secretReveal.username}</code>
               </p>
               <p>
-                Secret: <code>{secretReveal.secret}</code>
+                رمز: <code className="mono">{secretReveal.secret}</code>
               </p>
               <p>
-                WHIP: <code>{secretReveal.whipUrl}</code>
+                WHIP: <code className="mono">{secretReveal.whipUrl}</code>
               </p>
               <button type="button" className="ghost" onClick={() => setSecretReveal(null)}>
-                Dismiss
+                بستن
               </button>
             </div>
             <div className="secret-banner-qr">
               <SecretQrCode value={buildPublishSharePayload(secretReveal)} />
-              <p className="muted small">Scan to share</p>
+              <p className="muted small">اسکن برای اشتراک</p>
             </div>
           </div>
         ) : null}
 
         <div className="table">
           {publishers.length === 0 ? (
-            <p className="muted">No publishers yet.</p>
+            <p className="muted">هنوز ناشری نیست.</p>
           ) : (
             publishers.map((pub) => (
               <article key={pub.id} className="row">
@@ -139,26 +139,26 @@ export default function PublishersPage() {
                   <div className="row-title">
                     <span
                       className={`dot ${pub.online ? "on" : "off"}`}
-                      title={pub.online ? "Live" : "Offline"}
+                      title={pub.online ? "زنده" : "آفلاین"}
                     />
                     <strong>{pub.username}</strong>
                     {pub.label ? <span className="tag">{pub.label}</span> : null}
-                    {!pub.enabled ? <span className="tag warn">disabled</span> : null}
+                    {!pub.enabled ? <span className="tag warn">غیرفعال</span> : null}
                   </div>
                   <p className="mono muted small">{pub.streamPath}</p>
                 </div>
                 <div className="row-actions">
                   <Link className="btn-link" to={`/listen/${pub.id}`}>
-                    Listen
+                    گوش دادن
                   </Link>
                   <button type="button" className="ghost" onClick={() => toggle(pub)}>
-                    {pub.enabled ? "Disable" : "Enable"}
+                    {pub.enabled ? "غیرفعال کردن" : "فعال کردن"}
                   </button>
                   <button type="button" className="ghost" onClick={() => rotate(pub.id)}>
-                    Rotate
+                    تعویض رمز
                   </button>
                   <button type="button" className="danger" onClick={() => remove(pub.id)}>
-                    Delete
+                    حذف
                   </button>
                 </div>
               </article>

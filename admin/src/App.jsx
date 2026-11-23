@@ -23,7 +23,7 @@ export default function App() {
     return (
       <div className="boot">
         <div className="boot-pulse" />
-        <p>Loading…</p>
+        <p>در حال بارگذاری…</p>
       </div>
     );
   }

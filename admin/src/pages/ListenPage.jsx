@@ -4,6 +4,14 @@ import { Publishers } from "../api.js";
 import { startWhep } from "../whep.js";
 import AudioVisualizer from "../components/AudioVisualizer.jsx";
 
+const STATUS_LABELS = {
+  idle: "آماده",
+  connecting: "در حال اتصال",
+  connected: "متصل",
+  failed: "ناموفق",
+  disconnected: "قطع‌شده",
+};
+
 export default function ListenPage() {
   const { id } = useParams();
   const [publisher, setPublisher] = useState(null);
@@ -18,7 +26,7 @@ export default function ListenPage() {
       .then((data) => {
         const found = (data.publishers || []).find((p) => p.id === id);
         setPublisher(found || null);
-        if (!found) setError("Publisher not found");
+        if (!found) setError("ناشر پیدا نشد");
       })
       .catch((err) => setError(err.message));
   }, [id]);
@@ -52,7 +60,7 @@ export default function ListenPage() {
         onConnectionState: (state) => {
           setStatus(state);
           if (state === "failed" || state === "disconnected") {
-            setError("Connection lost");
+            setError("اتصال قطع شد");
           }
         },
       });
@@ -60,7 +68,7 @@ export default function ListenPage() {
       setStatus("connected");
     } catch (err) {
       setStatus("idle");
-      setError(err.message || "Failed to connect");
+      setError(err.message || "اتصال برقرار نشد");
     }
   }
 
@@ -79,15 +87,15 @@ export default function ListenPage() {
   return (
     <main className="page listen-page">
       <p className="muted small">
-        <Link to="/publishers">← Publishers</Link>
+        <Link to="/publishers">ناشران ←</Link>
       </p>
 
       <div className="listen-hero">
         <div className="live-meta">
           <span className={`live-pill ${live ? "hot" : ""}`}>
-            {live ? "LIVE" : "STANDBY"}
+            {live ? "زنده" : "آماده"}
           </span>
-          <h1>{publisher?.label || publisher?.username || "Stream"}</h1>
+          <h1>{publisher?.label || publisher?.username || "استریم"}</h1>
           <p className="mono muted">{publisher?.streamPath || "…"}</p>
         </div>
 
@@ -98,14 +106,16 @@ export default function ListenPage() {
         <div className="listen-controls">
           {status === "idle" || status === "failed" || status === "disconnected" ? (
             <button type="button" onClick={connect} disabled={!publisher}>
-              Start listening
+              شروع گوش دادن
             </button>
           ) : (
             <button type="button" className="danger" onClick={disconnect}>
-              Stop
+              توقف
             </button>
           )}
-          <span className="muted small">Status: {status}</span>
+          <span className="muted small">
+            وضعیت: {STATUS_LABELS[status] || status}
+          </span>
         </div>
 
         {error ? <p className="error">{error}</p> : null}

@@ -2,9 +2,9 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Auth } from "../api.js";
 
 const NAV = [
-  { to: "/publishers", label: "Publishers" },
-  { to: "/users", label: "Users" },
-  { to: "/roles", label: "Roles" },
+  { to: "/publishers", label: "ناشران" },
+  { to: "/users", label: "کاربران" },
+  { to: "/roles", label: "نقش‌ها" },
 ];
 
 export default function AdminLayout({ user, onLogout }) {
@@ -26,8 +26,8 @@ export default function AdminLayout({ user, onLogout }) {
     <div className="admin-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <p className="brand">StreamAudio</p>
-          <p className="muted small">Admin</p>
+          <p className="brand">پژواک</p>
+          <p className="muted small">پنل مدیریت</p>
         </div>
 
         <nav className="sidebar-nav">
@@ -45,10 +45,10 @@ export default function AdminLayout({ user, onLogout }) {
         </nav>
 
         <div className="sidebar-footer">
-          <p className="muted small">Signed in as</p>
+          <p className="muted small">وارد شده به‌عنوان</p>
           <p className="sidebar-user">{user.username}</p>
           <button type="button" className="ghost" onClick={logout}>
-            Sign out
+            خروج
           </button>
         </div>
       </aside>
