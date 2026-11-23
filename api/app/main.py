@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import traceback
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -10,19 +11,44 @@ from fastapi.responses import JSONResponse
 from app import db
 from app.routers import auth, mediamtx_auth, publishers
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 logger = logging.getLogger(__name__)
+
+_ready = False
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    logger.info("API starting…")
-    await db.init_pool()
-    await db.wait_for_db()
-    await db.migrate()
-    await db.bootstrap_admin()
-    logger.info("API ready")
+    global _ready
+    try:
+        logger.info("API starting…")
+        # Import settings early so misconfig fails with a clear log line
+        from app.config import get_settings
+
+        settings = get_settings()
+        logger.info(
+            "Config OK domain=%s db=%s cookie_secure=%s",
+            settings.domain,
+            settings.db_target,
+            settings.cookie_secure,
+        )
+
+        await db.init_pool()
+        await db.wait_for_db()
+        await db.migrate()
+        await db.bootstrap_admin()
+        _ready = True
+        logger.info("API ready")
+    except Exception:
+        logger.error("API startup failed:\n%s", traceback.format_exc())
+        raise
+
     yield
+
+    _ready = False
     await db.close_pool()
 
 
@@ -49,6 +75,8 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
 
 @app.get("/api/health")
 async def health():
+    if not _ready:
+        return JSONResponse({"ok": False, "status": "starting"}, status_code=503)
     return {"ok": True}
 
 

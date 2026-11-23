@@ -20,14 +20,16 @@ pool: AsyncConnectionPool | None = None
 async def init_pool() -> AsyncConnectionPool:
     global pool
     settings = get_settings()
+    logger.info("Connecting to Postgres at %s", settings.db_target)
     pool = AsyncConnectionPool(
-        conninfo=settings.database_url,
+        conninfo=settings.conninfo,
         min_size=1,
         max_size=10,
         kwargs={"row_factory": dict_row, "autocommit": True},
         open=False,
+        timeout=10,
     )
-    await pool.open()
+    await pool.open(wait=True, timeout=30)
     return pool
 
 
@@ -87,14 +89,16 @@ async def migrate() -> None:
             CREATE INDEX IF NOT EXISTS publishers_enabled_idx ON publishers (enabled);
             """
         )
+    logger.info("Migrations applied")
 
 
 async def bootstrap_admin() -> None:
     settings = get_settings()
     async with get_pool().connection() as conn:
-        row = await conn.execute("SELECT id FROM admins LIMIT 1")
-        existing = await row.fetchone()
+        cur = await conn.execute("SELECT id FROM admins LIMIT 1")
+        existing = await cur.fetchone()
         if existing:
+            logger.info("Admin already exists — skip bootstrap")
             return
 
         if not settings.admin_bootstrap_password:

@@ -117,15 +117,17 @@ docker compose logs --tail=100 api
 
 Common causes:
 
-1. **Missing `.env`** — you must `cp .env.example .env` and fill values on the server (upload of source alone is not enough).
-2. **`DATABASE_URL` password mismatch** — must match `POSTGRES_PASSWORD`. If the password has `@`, `#`, `/`, `+`, URL-encode it in `DATABASE_URL`.
-3. **Empty `JWT_SECRET` / `DATABASE_URL`** — API exits immediately with `Missing required env`.
-4. **API still booting** — wait for `api` to show healthy, then retry login.
+1. **Missing `.env`** — `cp .env.example .env` and fill values on the server.
+2. **Wrong DB host in `DATABASE_URL`** — inside Docker use host `postgres`, not `localhost`. Prefer leaving `DATABASE_URL` empty and set only `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`.
+3. **Empty `JWT_SECRET`** — API refuses to start.
+4. **`$` in secrets** — Docker Compose interpolates `$`. Use `$$` for a literal dollar sign, or generate secrets without `$`.
+5. Check logs: `docker compose logs --tail=200 api`
 
 Rebuild after pulling fixes:
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build --force-recreate
+docker compose logs -f api
 ```
 
 ## Out of scope (this phase)

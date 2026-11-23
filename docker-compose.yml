@@ -23,7 +23,14 @@ services:
       - .env
     environment:
       PORT: "3000"
-      DATABASE_URL: ${DATABASE_URL}
+      # Prefer discrete PG vars (password special chars are URL-encoded in-app).
+      # DATABASE_URL still works if you set it explicitly.
+      DATABASE_URL: ${DATABASE_URL:-}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
       JWT_SECRET: ${JWT_SECRET}
       ADMIN_BOOTSTRAP_USER: ${ADMIN_BOOTSTRAP_USER}
       ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
@@ -42,10 +49,10 @@ services:
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/api/health')",
         ]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 40s
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
     networks:
       - internal
 
