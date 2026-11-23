@@ -48,6 +48,9 @@ services:
       timeout: 5s
       retries: 30
       start_period: 120s
+    # Host nginx / existing SSL proxy can reach the API here
+    ports:
+      - "127.0.0.1:3000:3000"
     networks:
       - internal
 
@@ -59,6 +62,7 @@ services:
     environment:
       MTX_WEBRTCADDITIONALHOSTS: ${WEBRTC_ADDITIONAL_HOSTS}
     ports:
+      - "127.0.0.1:8889:8889"
       - "8189:8189/udp"
       - "8189:8189/tcp"
     depends_on:
@@ -70,10 +74,15 @@ services:
   admin:
     build: ./admin
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
     networks:
       - internal
 
+  # Optional: use only if nothing else binds host :80/:443
+  #   docker compose --profile caddy up -d
   caddy:
+    profiles: ["caddy"]
     image: caddy:2.9-alpine
     restart: unless-stopped
     ports:
@@ -88,12 +97,9 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      api:
-        condition: service_started
-      admin:
-        condition: service_started
-      mediamtx:
-        condition: service_started
+      - api
+      - admin
+      - mediamtx
     networks:
       - internal
 

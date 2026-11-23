@@ -34,6 +34,36 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
+### SSL / reverse proxy
+
+**This stack does not bind host :80/:443 by default** (avoids fighting aaPanel/nginx).
+
+Docker publishes locally:
+
+| Service | Host address |
+|---------|----------------|
+| Admin UI | `127.0.0.1:8080` |
+| API | `127.0.0.1:3000` |
+| MediaMTX WHIP/WHEP | `127.0.0.1:8889` |
+| WebRTC media | `8189/udp` + `8189/tcp` |
+
+Point your existing HTTPS vhost at those ports. Example config: [`deploy/nginx-st.fifa2012.ir.conf`](deploy/nginx-st.fifa2012.ir.conf).
+
+Critical: `location /api/` must proxy to `127.0.0.1:3000`. If only `/` goes to admin, login returns **502**.
+
+Optional all-in-one Caddy (only if nothing else uses 80/443):
+
+```bash
+docker compose --profile caddy up -d
+```
+
+Quick check that API is reachable on the host:
+
+```bash
+curl -sS http://127.0.0.1:3000/api/health
+# {"ok":true}
+```
+
 Open `https://YOUR_DOMAIN`, sign in with `ADMIN_BOOTSTRAP_USER` / `ADMIN_BOOTSTRAP_PASSWORD`, then create a publisher.
 
 ### `.env` checklist
