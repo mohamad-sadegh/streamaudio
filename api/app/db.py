@@ -6,6 +6,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
+from psycopg.conninfo import make_conninfo
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
@@ -21,15 +22,19 @@ async def init_pool() -> AsyncConnectionPool:
     global pool
     settings = get_settings()
     logger.info("Connecting to Postgres at %s", settings.db_target)
+    conninfo = make_conninfo(**settings.psycopg_kwargs())
     pool = AsyncConnectionPool(
-        conninfo=settings.conninfo,
+        conninfo=conninfo,
         min_size=1,
         max_size=10,
-        kwargs={"row_factory": dict_row, "autocommit": True},
+        kwargs={
+            "row_factory": dict_row,
+            "autocommit": True,
+        },
         open=False,
         timeout=10,
     )
-    await pool.open(wait=True, timeout=30)
+    await pool.open(wait=True, timeout=60)
     return pool
 
 

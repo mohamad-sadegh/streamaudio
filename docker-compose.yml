@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -19,11 +19,8 @@ services:
   api:
     build: ./api
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       PORT: "3000"
-      # Discrete PG settings only (avoids broken DATABASE_URL host parsing)
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
@@ -50,7 +47,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
-      start_period: 90s
+      start_period: 120s
     networks:
       - internal
 
@@ -61,12 +58,12 @@ services:
       - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
     environment:
       MTX_WEBRTCADDITIONALHOSTS: ${WEBRTC_ADDITIONAL_HOSTS}
-    # WebRTC media must reach the host; HTTP stays internal via Caddy
     ports:
       - "8189:8189/udp"
       - "8189:8189/tcp"
     depends_on:
-      - api
+      api:
+        condition: service_started
     networks:
       - internal
 
@@ -92,7 +89,7 @@ services:
       - caddy_config:/config
     depends_on:
       api:
-        condition: service_healthy
+        condition: service_started
       admin:
         condition: service_started
       mediamtx:
