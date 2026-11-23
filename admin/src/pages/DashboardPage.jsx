@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Auth, Publishers } from "../api.js";
+import SecretQrCode, { buildPublishSharePayload } from "../components/SecretQrCode.jsx";
 
 export default function DashboardPage({ user, onLogout }) {
   const [publishers, setPublishers] = useState([]);
@@ -118,19 +119,28 @@ export default function DashboardPage({ user, onLogout }) {
 
           {secretReveal?.secret ? (
             <div className="secret-banner">
-              <strong>Copy now — secret is shown once</strong>
-              <p>
-                User: <code>{secretReveal.username}</code>
-              </p>
-              <p>
-                Secret: <code>{secretReveal.secret}</code>
-              </p>
-              <p>
-                WHIP: <code>{secretReveal.whipUrl}</code>
-              </p>
-              <button type="button" className="ghost" onClick={() => setSecretReveal(null)}>
-                Dismiss
-              </button>
+              <div className="secret-banner-main">
+                <strong>Copy now — secret is shown once</strong>
+                <p className="muted small">
+                  Scan the QR with the Android app, or copy the values below.
+                </p>
+                <p>
+                  User: <code>{secretReveal.username}</code>
+                </p>
+                <p>
+                  Secret: <code>{secretReveal.secret}</code>
+                </p>
+                <p>
+                  WHIP: <code>{secretReveal.whipUrl}</code>
+                </p>
+                <button type="button" className="ghost" onClick={() => setSecretReveal(null)}>
+                  Dismiss
+                </button>
+              </div>
+              <div className="secret-banner-qr">
+                <SecretQrCode value={buildPublishSharePayload(secretReveal)} />
+                <p className="muted small">Scan to share</p>
+              </div>
             </div>
           ) : null}
 

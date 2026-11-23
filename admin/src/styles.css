@@ -238,8 +238,31 @@ label {
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.secret-banner-main {
   display: grid;
   gap: 0.35rem;
+  min-width: min(100%, 18rem);
+  flex: 1;
+}
+
+.secret-banner-qr {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.secret-qr {
+  display: block;
+  border-radius: 10px;
+  background: #e8f2ee;
 }
 
 .table {

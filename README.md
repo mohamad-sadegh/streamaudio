@@ -100,11 +100,22 @@ Open `https://YOUR_DOMAIN`, sign in with `ADMIN_BOOTSTRAP_USER` / `ADMIN_BOOTSTR
 
 ## Publisher credentials (for a future Android / WHIP client)
 
-After **Create access** in the admin panel (secret shown once):
+After **Create access** or **Rotate** in the admin panel (secret shown once):
 
 - **WHIP URL:** `https://DOMAIN/live/{publisherId}/whip`
 - **Auth:** `Authorization: Bearer username:secret`  
   or HTTP Basic `username` / `secret`
+- **QR payload** (JSON, scan with the Android app):
+
+```json
+{
+  "v": 1,
+  "type": "streamaudio.publish",
+  "username": "device1",
+  "secret": "<shown-once>",
+  "whipUrl": "https://DOMAIN/live/{publisherId}/whip"
+}
+```
 
 ## Admin live listen
 
