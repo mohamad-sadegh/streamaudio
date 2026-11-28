@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 import uuid
@@ -34,6 +35,7 @@ PUBLISHER_COLUMNS = """
     id, username, label, stream_path, enabled,
     desired_mode, actual_mode, device_connected,
     device_last_seen_at, device_last_error, selected_inputs,
+    available_inputs,
     created_at, updated_at
 """
 
@@ -110,7 +112,21 @@ def public_publisher(
         out["secret"] = secret_plain
     if include_detail:
         pub_id = str(row["id"])
-        out["availableInputs"] = device_state.get_available(pub_id)
+        live_available = device_state.get_available(pub_id)
+        if live_available:
+            out["availableInputs"] = live_available
+        else:
+            raw_available = row.get("available_inputs")
+            if isinstance(raw_available, list):
+                out["availableInputs"] = raw_available
+            elif isinstance(raw_available, str):
+                try:
+                    parsed = json.loads(raw_available)
+                    out["availableInputs"] = parsed if isinstance(parsed, list) else []
+                except json.JSONDecodeError:
+                    out["availableInputs"] = []
+            else:
+                out["availableInputs"] = []
         out["actualInputs"] = device_state.get_actual(pub_id)
         out["telemetry"] = device_state.get_telemetry(pub_id)
         out["slotPaths"] = {
@@ -358,23 +374,40 @@ async def set_publisher_desired_mode(
 async def rotate_secret(publisher_id: str, _admin: dict = Depends(require_admin)):
     secret = generate_secret(32)
     secret_hash = hash_password(secret)
+    existing = await db.fetch_one(
+        f"SELECT {PUBLISHER_COLUMNS} FROM publishers WHERE id = %s",
+        (publisher_id,),
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="پیدا نشد")
+
+    # Keep channel selection across re-pair; only force idle modes
+    preserved = parse_selected_inputs(existing.get("selected_inputs"))
+    for item in preserved:
+        item["desiredMode"] = "idle"
+
     row = await db.fetch_one(
         f"""
         UPDATE publishers SET secret_hash = %s, updated_at = NOW(),
           desired_mode = 'idle',
-          selected_inputs = '[]'::jsonb,
+          selected_inputs = %s::jsonb,
           device_connected = FALSE
         WHERE id = %s
         RETURNING {PUBLISHER_COLUMNS}
         """,
-        (secret_hash, publisher_id),
+        (
+            secret_hash,
+            json.dumps(preserved, ensure_ascii=False),
+            publisher_id,
+        ),
     )
     if not row:
         raise HTTPException(status_code=404, detail="پیدا نشد")
+    # Drop live telemetry/actual; available_inputs stay in DB for the panel
     device_state.clear(publisher_id)
     await hub.push_desired(publisher_id, "idle")
-    await hub.push_desired_inputs(publisher_id, [])
-    return {"publisher": public_publisher(row, secret)}
+    await hub.push_desired_inputs(publisher_id, preserved)
+    return {"publisher": public_publisher(row, secret, include_detail=True)}
 
 
 @router.delete("/api/publishers/{publisher_id}")

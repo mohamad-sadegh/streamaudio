@@ -38,11 +38,27 @@ export default function PublisherManagePage() {
   useEffect(() => {
     if (!publisher) return;
     setDraftDeviceIds((publisher.selectedInputs || []).map((s) => s.deviceId));
-    // Only reseat draft when publisher identity changes (not every poll).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publisher?.id]);
 
-  const available = publisher?.availableInputs || [];
+  // If server already has saved channels (e.g. after re-pair) and draft is still empty, adopt them.
+  useEffect(() => {
+    if (!publisher) return;
+    const selectedIds = (publisher.selectedInputs || []).map((s) => s.deviceId);
+    if (selectedIds.length === 0) return;
+    setDraftDeviceIds((prev) => (prev.length === 0 ? selectedIds : prev));
+  }, [publisher, publisher?.selectedInputs]);
+
+  const available = useMemo(() => {
+    const live = publisher?.availableInputs || [];
+    if (live.length > 0) return live;
+    // Fallback: synthesize from selected so the panel never looks empty after re-pair
+    return (publisher?.selectedInputs || []).map((s) => ({
+      id: s.deviceId,
+      label: s.label || `ورودی ${s.deviceId}`,
+      type: 0,
+    }));
+  }, [publisher?.availableInputs, publisher?.selectedInputs]);
   const selected = publisher?.selectedInputs || [];
   const actualBySlot = useMemo(() => {
     const map = new Map();
@@ -188,10 +204,12 @@ export default function PublisherManagePage() {
             </button>
           </div>
 
-          {!publisher.deviceConnected ? (
+          {!publisher.deviceConnected && available.length === 0 ? (
             <p className="muted">برای دیدن ورودی‌ها، گوشی باید به کنترل وصل باشد.</p>
           ) : available.length === 0 ? (
-            <p className="muted">هنوز لیست ورودی از گوشی نرسیده است…</p>
+            <p className="muted">
+              دستگاه وصل است — در انتظار لیست ورودی از گوشی…
+            </p>
           ) : (
             <div className="input-grid">
               {available.map((device) => {
@@ -204,7 +222,11 @@ export default function PublisherManagePage() {
                     <input
                       type="checkbox"
                       checked={checked}
-                      disabled={busy || (!checked && draftDeviceIds.length >= maxInputs)}
+                      disabled={
+                        busy ||
+                        (!checked && draftDeviceIds.length >= maxInputs) ||
+                        !publisher.deviceConnected
+                      }
                       onChange={() => toggleDevice(device.id)}
                     />
                     <span>{device.label || `دستگاه ${device.id}`}</span>

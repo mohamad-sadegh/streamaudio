@@ -26,6 +26,7 @@ PUBLISHER_SELECT = """
     SELECT id, username, label, secret_hash, stream_path, enabled,
            desired_mode, actual_mode, device_connected,
            device_last_seen_at, device_last_error, selected_inputs,
+           available_inputs,
            created_at, updated_at
     FROM publishers
 """
@@ -127,9 +128,23 @@ async def device_ws(ws: WebSocket) -> None:
         """,
         (publisher_id,),
     )
+    # Warm in-memory cache from DB so the admin panel has inputs immediately
+    cached_available = pub.get("available_inputs")
+    if isinstance(cached_available, list) and cached_available:
+        device_state.set_available(publisher_id, cached_available)
+    elif isinstance(cached_available, str):
+        try:
+            parsed = json.loads(cached_available)
+            if isinstance(parsed, list) and parsed:
+                device_state.set_available(publisher_id, parsed)
+        except json.JSONDecodeError:
+            pass
 
     try:
         await _send_desired_bundle(ws, publisher_id)
+        await ws.send_text(
+            json.dumps({"type": "request_inventory"}, ensure_ascii=False)
+        )
 
         while True:
             raw = await ws.receive_text()
@@ -186,6 +201,9 @@ async def _handle_device_message(
             (publisher_id,),
         )
         await _send_desired_bundle(ws, publisher_id)
+        await ws.send_text(
+            json.dumps({"type": "request_inventory"}, ensure_ascii=False)
+        )
         return
 
     if msg_type == "set_desired":
@@ -233,13 +251,16 @@ async def _handle_device_message(
             )
             return
         device_state.set_available(publisher_id, devices)
+        cleaned = device_state.get_available(publisher_id)
         await db.execute(
             """
             UPDATE publishers
-            SET device_last_seen_at = NOW(), device_connected = TRUE
+            SET available_inputs = %s::jsonb,
+                device_last_seen_at = NOW(),
+                device_connected = TRUE
             WHERE id = %s
             """,
-            (publisher_id,),
+            (json.dumps(cleaned, ensure_ascii=False), publisher_id),
         )
         return
 
@@ -321,6 +342,7 @@ async def set_desired_mode(
         RETURNING id, username, label, stream_path, enabled,
                   desired_mode, actual_mode, device_connected,
                   device_last_seen_at, device_last_error, selected_inputs,
+                  available_inputs,
                   created_at, updated_at
         """,
         (cleaned, selected_inputs_json(selected), publisher_id),
@@ -350,6 +372,7 @@ async def set_selected_inputs(
         RETURNING id, username, label, stream_path, enabled,
                   desired_mode, actual_mode, device_connected,
                   device_last_seen_at, device_last_error, selected_inputs,
+                  available_inputs,
                   created_at, updated_at
         """,
         (selected_inputs_json(selected), rolled, publisher_id),

@@ -105,6 +105,8 @@ async def migrate() -> None:
               ADD COLUMN IF NOT EXISTS device_last_error TEXT;
             ALTER TABLE publishers
               ADD COLUMN IF NOT EXISTS selected_inputs JSONB NOT NULL DEFAULT '[]'::jsonb;
+            ALTER TABLE publishers
+              ADD COLUMN IF NOT EXISTS available_inputs JSONB NOT NULL DEFAULT '[]'::jsonb;
             """
         )
     logger.info("Migrations applied")
