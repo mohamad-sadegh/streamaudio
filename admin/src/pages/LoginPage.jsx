@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Auth } from "../api.js";
+import ThemeToggle from "../components/ThemeToggle.jsx";
 
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -24,6 +25,9 @@ export default function LoginPage({ onLogin }) {
   return (
     <div className="login-shell">
       <div className="login-atmosphere" aria-hidden />
+      <div className="login-theme">
+        <ThemeToggle />
+      </div>
       <form className="login-panel" onSubmit={submit}>
         <p className="brand">پژواک</p>
         <h1>ورود مدیر</h1>

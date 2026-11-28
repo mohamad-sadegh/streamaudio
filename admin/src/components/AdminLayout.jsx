@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Auth } from "../api.js";
+import ThemeToggle from "./ThemeToggle.jsx";
 
 const NAV = [
   { to: "/publishers", label: "ناشران" },
@@ -47,9 +48,12 @@ export default function AdminLayout({ user, onLogout }) {
         <div className="sidebar-footer">
           <p className="muted small">وارد شده به‌عنوان</p>
           <p className="sidebar-user">{user.username}</p>
-          <button type="button" className="ghost" onClick={logout}>
-            خروج
-          </button>
+          <div className="sidebar-actions">
+            <ThemeToggle />
+            <button type="button" className="ghost" onClick={logout}>
+              خروج
+            </button>
+          </div>
         </div>
       </aside>
 
