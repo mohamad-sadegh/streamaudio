@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from app import db
 from app.password import verify_password
+from app.publisher_inputs import match_publisher_path
 from app.security import verify_listen_token
 
 router = APIRouter(tags=["mediamtx"])
@@ -73,7 +74,7 @@ async def _handle_publish(path: str, username: str, secret: str) -> Response:
     )
     if not pub or not pub["enabled"]:
         return JSONResponse({"error": "forbidden"}, status_code=403)
-    if pub["stream_path"] != path:
+    if match_publisher_path(pub["stream_path"], path) is None:
         return JSONResponse({"error": "path mismatch"}, status_code=403)
     if not verify_password(pub["secret_hash"], secret):
         return JSONResponse({"error": "forbidden"}, status_code=403)
@@ -89,11 +90,13 @@ async def _handle_read(path: str, username: str, secret: str) -> Response:
         return JSONResponse({"error": "path mismatch"}, status_code=403)
 
     pub = await db.fetch_one(
-        "SELECT enabled FROM publishers WHERE id = %s",
+        "SELECT enabled, stream_path FROM publishers WHERE id = %s",
         (payload["publisherId"],),
     )
     if not pub or not pub["enabled"]:
         return JSONResponse({"error": "forbidden"}, status_code=403)
+    if match_publisher_path(pub["stream_path"], path) is None:
+        return JSONResponse({"error": "path mismatch"}, status_code=403)
 
     exp = payload.get("exp")
     expire_at = (

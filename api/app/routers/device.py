@@ -11,7 +11,13 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app import db
 from app.control_hub import hub
 from app.control_modes import normalize_mode
+from app.device_state import device_state
 from app.password import verify_password
+from app.publisher_inputs import (
+    parse_selected_inputs,
+    rollup_mode,
+    selected_inputs_json,
+)
 
 router = APIRouter(tags=["device"])
 logger = logging.getLogger(__name__)
@@ -19,7 +25,7 @@ logger = logging.getLogger(__name__)
 PUBLISHER_SELECT = """
     SELECT id, username, label, secret_hash, stream_path, enabled,
            desired_mode, actual_mode, device_connected,
-           device_last_seen_at, device_last_error,
+           device_last_seen_at, device_last_error, selected_inputs,
            created_at, updated_at
     FROM publishers
 """
@@ -44,7 +50,6 @@ def _parse_bearer(header: str | None) -> tuple[str, str] | None:
 async def _authenticate_publisher(ws: WebSocket) -> dict[str, Any] | None:
     creds = _parse_bearer(ws.headers.get("authorization"))
     if creds is None:
-        # Some WS clients put auth in the first query param as fallback
         token = ws.query_params.get("token") or ""
         if ":" in token:
             user, secret = token.split(":", 1)
@@ -67,6 +72,42 @@ async def _authenticate_publisher(ws: WebSocket) -> dict[str, Any] | None:
     return pub
 
 
+async def _send_desired_bundle(ws: WebSocket, publisher_id: str) -> None:
+    row = await db.fetch_one(
+        "SELECT desired_mode, selected_inputs FROM publishers WHERE id = %s",
+        (publisher_id,),
+    )
+    mode = normalize_mode(row["desired_mode"] if row else None) or "idle"
+    selected = parse_selected_inputs(row.get("selected_inputs") if row else None)
+    await ws.send_text(
+        json.dumps(
+            {
+                "type": "desired",
+                "mode": mode,
+                "publisherId": publisher_id,
+            },
+            ensure_ascii=False,
+        )
+    )
+    await ws.send_text(
+        json.dumps(
+            {
+                "type": "desired_inputs",
+                "inputs": [
+                    {
+                        "slot": i["slot"],
+                        "deviceId": i["deviceId"],
+                        "desiredMode": i["desiredMode"],
+                        "label": i.get("label") or "",
+                    }
+                    for i in selected
+                ],
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
 @router.websocket("/api/device/ws")
 async def device_ws(ws: WebSocket) -> None:
     await ws.accept()
@@ -87,18 +128,8 @@ async def device_ws(ws: WebSocket) -> None:
         (publisher_id,),
     )
 
-    desired = normalize_mode(pub.get("desired_mode")) or "idle"
     try:
-        await ws.send_text(
-            json.dumps(
-                {
-                    "type": "desired",
-                    "mode": desired,
-                    "publisherId": publisher_id,
-                },
-                ensure_ascii=False,
-            )
-        )
+        await _send_desired_bundle(ws, publisher_id)
 
         while True:
             raw = await ws.receive_text()
@@ -116,7 +147,6 @@ async def device_ws(ws: WebSocket) -> None:
         logger.warning("Device WS error publisher=%s: %s", publisher_id, err)
     finally:
         await hub.disconnect(publisher_id, ws)
-        # Only clear connected if this socket is no longer the active one
         if not hub.is_connected(publisher_id):
             await db.execute(
                 """
@@ -155,14 +185,7 @@ async def _handle_device_message(
             """,
             (publisher_id,),
         )
-        row = await db.fetch_one(
-            "SELECT desired_mode FROM publishers WHERE id = %s",
-            (publisher_id,),
-        )
-        mode = normalize_mode(row["desired_mode"] if row else None) or "idle"
-        await ws.send_text(
-            json.dumps({"type": "desired", "mode": mode}, ensure_ascii=False)
-        )
+        await _send_desired_bundle(ws, publisher_id)
         return
 
     if msg_type == "set_desired":
@@ -202,6 +225,64 @@ async def _handle_device_message(
         )
         return
 
+    if msg_type == "available_inputs":
+        devices = msg.get("devices")
+        if not isinstance(devices, list):
+            await ws.send_text(
+                json.dumps({"type": "error", "error": "invalid_devices"}, ensure_ascii=False)
+            )
+            return
+        device_state.set_available(publisher_id, devices)
+        await db.execute(
+            """
+            UPDATE publishers
+            SET device_last_seen_at = NOW(), device_connected = TRUE
+            WHERE id = %s
+            """,
+            (publisher_id,),
+        )
+        return
+
+    if msg_type == "actual_inputs":
+        inputs = msg.get("inputs")
+        if not isinstance(inputs, list):
+            await ws.send_text(
+                json.dumps({"type": "error", "error": "invalid_inputs"}, ensure_ascii=False)
+            )
+            return
+        device_state.set_actual(publisher_id, inputs)
+        actual_list = device_state.get_actual(publisher_id)
+        rolled = rollup_mode(
+            [{"desiredMode": i.get("mode")} for i in actual_list],
+            key="desiredMode",
+        )
+        errors = [i.get("error") for i in actual_list if i.get("error")]
+        error_text = errors[0] if errors else None
+        await db.execute(
+            """
+            UPDATE publishers
+            SET actual_mode = %s,
+                device_last_error = %s,
+                device_last_seen_at = NOW(),
+                device_connected = TRUE
+            WHERE id = %s
+            """,
+            (rolled, error_text, publisher_id),
+        )
+        return
+
+    if msg_type == "telemetry":
+        device_state.add_telemetry(publisher_id, msg)
+        await db.execute(
+            """
+            UPDATE publishers
+            SET device_last_seen_at = NOW(), device_connected = TRUE
+            WHERE id = %s
+            """,
+            (publisher_id,),
+        )
+        return
+
     await ws.send_text(
         json.dumps({"type": "error", "error": "unknown_type"}, ensure_ascii=False)
     )
@@ -210,23 +291,97 @@ async def _handle_device_message(
 async def set_desired_mode(
     publisher_id: str, mode: str, *, push: bool = True
 ) -> dict[str, Any] | None:
+    """Legacy global mode: apply mode to every selected input (or idle clears all)."""
+    cleaned = normalize_mode(mode)
+    if cleaned is None:
+        return None
+
+    row = await db.fetch_one(
+        "SELECT selected_inputs FROM publishers WHERE id = %s",
+        (publisher_id,),
+    )
+    if not row:
+        return None
+
+    selected = parse_selected_inputs(row.get("selected_inputs"))
+    if selected:
+        for item in selected:
+            item["desiredMode"] = cleaned
+    else:
+        # No inputs selected: still store rollup for list UI
+        pass
+
+    updated = await db.fetch_one(
+        """
+        UPDATE publishers
+        SET desired_mode = %s,
+            selected_inputs = %s::jsonb,
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING id, username, label, stream_path, enabled,
+                  desired_mode, actual_mode, device_connected,
+                  device_last_seen_at, device_last_error, selected_inputs,
+                  created_at, updated_at
+        """,
+        (cleaned, selected_inputs_json(selected), publisher_id),
+    )
+    if not updated:
+        return None
+    if push:
+        await hub.push_desired_inputs(publisher_id, selected)
+        await hub.push_desired(publisher_id, cleaned)
+    return updated
+
+
+async def set_selected_inputs(
+    publisher_id: str,
+    selected: list[dict[str, Any]],
+    *,
+    push: bool = True,
+) -> dict[str, Any] | None:
+    rolled = rollup_mode(selected)
+    updated = await db.fetch_one(
+        """
+        UPDATE publishers
+        SET selected_inputs = %s::jsonb,
+            desired_mode = %s,
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING id, username, label, stream_path, enabled,
+                  desired_mode, actual_mode, device_connected,
+                  device_last_seen_at, device_last_error, selected_inputs,
+                  created_at, updated_at
+        """,
+        (selected_inputs_json(selected), rolled, publisher_id),
+    )
+    if not updated:
+        return None
+    if push:
+        # desired_inputs first so phones apply slots before seeing rollup desired
+        await hub.push_desired_inputs(publisher_id, selected)
+        await hub.push_desired(publisher_id, rolled)
+    return updated
+
+
+async def set_slot_desired_mode(
+    publisher_id: str, slot: int, mode: str, *, push: bool = True
+) -> dict[str, Any] | None:
     cleaned = normalize_mode(mode)
     if cleaned is None:
         return None
     row = await db.fetch_one(
-        """
-        UPDATE publishers
-        SET desired_mode = %s, updated_at = NOW()
-        WHERE id = %s
-        RETURNING id, username, label, stream_path, enabled,
-                  desired_mode, actual_mode, device_connected,
-                  device_last_seen_at, device_last_error,
-                  created_at, updated_at
-        """,
-        (cleaned, publisher_id),
+        "SELECT selected_inputs FROM publishers WHERE id = %s",
+        (publisher_id,),
     )
     if not row:
         return None
-    if push:
-        await hub.push_desired(publisher_id, cleaned)
-    return row
+    selected = parse_selected_inputs(row.get("selected_inputs"))
+    found = False
+    for item in selected:
+        if item["slot"] == slot:
+            item["desiredMode"] = cleaned
+            found = True
+            break
+    if not found:
+        return None
+    return await set_selected_inputs(publisher_id, selected, push=push)

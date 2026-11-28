@@ -17,7 +17,12 @@ export default function AdminLayout({ user, onLogout }) {
   }
 
   function linkActive(to, isActive) {
-    if (to === "/publishers" && location.pathname.startsWith("/listen/")) {
+    if (
+      to === "/publishers" &&
+      (location.pathname.startsWith("/listen/") ||
+        (location.pathname.startsWith("/publishers/") &&
+          location.pathname !== "/publishers"))
+    ) {
       return true;
     }
     return isActive;

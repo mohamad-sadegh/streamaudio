@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export default function AudioVisualizer({ stream, active }) {
+export default function AudioVisualizer({ stream, active, compact = false }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const audioRef = useRef(null);
@@ -102,7 +102,7 @@ export default function AudioVisualizer({ stream, active }) {
   }, [stream, active]);
 
   return (
-    <div className="visualizer">
+    <div className={`visualizer${compact ? " compact" : ""}`}>
       <canvas ref={canvasRef} />
     </div>
   );

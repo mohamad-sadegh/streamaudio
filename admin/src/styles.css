@@ -609,6 +609,136 @@ label {
   box-shadow: inset 0 0 40px var(--viz-inset), var(--shadow);
 }
 
+.visualizer.compact {
+  height: 88px;
+  border-radius: 12px;
+}
+
+.manage-page .panel {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.manage-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.manage-header h1 {
+  margin: 0 0 0.25rem;
+}
+
+.manage-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.manage-section {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.manage-section h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.manage-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.network-plot {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--row-bg);
+  overflow: hidden;
+  min-height: 180px;
+}
+
+.input-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.input-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--row-bg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.input-chip.on {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.input-chip input {
+  accent-color: var(--accent);
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.slot-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--row-bg);
+}
+
+.slot-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.slot-listen {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--line);
+}
+
+.slot-listen-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.slot-listen-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.warn-text {
+  color: var(--warn);
+  margin: 0.25rem 0 0;
+}
+
 .visualizer canvas {
   width: 100%;
   height: 100%;

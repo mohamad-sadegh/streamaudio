@@ -9,6 +9,8 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from app.publisher_inputs import desired_inputs_wire
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,6 +57,17 @@ class ControlHub:
         return await self.send_json(
             publisher_id,
             {"type": "desired", "mode": mode},
+        )
+
+    async def push_desired_inputs(
+        self, publisher_id: str, selected: list[dict[str, Any]]
+    ) -> bool:
+        return await self.send_json(
+            publisher_id,
+            {
+                "type": "desired_inputs",
+                "inputs": desired_inputs_wire(selected),
+            },
         )
 
 

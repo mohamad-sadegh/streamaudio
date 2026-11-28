@@ -56,10 +56,21 @@ export const Auth = {
 
 export const Publishers = {
   list: () => api("/api/publishers"),
+  get: (id) => api(`/api/publishers/${id}`),
   create: (username, label) =>
     api("/api/publishers", { method: "POST", body: { username, label } }),
   update: (id, patch) =>
     api(`/api/publishers/${id}`, { method: "PATCH", body: patch }),
+  setInputs: (id, inputs) =>
+    api(`/api/publishers/${id}/inputs`, {
+      method: "PUT",
+      body: { inputs },
+    }),
+  setInputDesiredMode: (id, slot, mode) =>
+    api(`/api/publishers/${id}/inputs/${slot}/desired-mode`, {
+      method: "POST",
+      body: { mode },
+    }),
   setDesiredMode: (id, mode) =>
     api(`/api/publishers/${id}/desired-mode`, {
       method: "POST",
@@ -68,8 +79,11 @@ export const Publishers = {
   rotate: (id) =>
     api(`/api/publishers/${id}/rotate-secret`, { method: "POST", body: {} }),
   remove: (id) => api(`/api/publishers/${id}`, { method: "DELETE" }),
-  listenToken: (id) =>
-    api(`/api/streams/${id}/listen-token`, { method: "POST", body: {} }),
+  listenToken: (id, slot) =>
+    api(`/api/streams/${id}/listen-token`, {
+      method: "POST",
+      body: slot == null ? {} : { slot },
+    }),
 };
 
 export const Users = {

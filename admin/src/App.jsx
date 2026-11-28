@@ -4,6 +4,7 @@ import { Auth } from "./api.js";
 import AdminLayout from "./components/AdminLayout.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import PublishersPage from "./pages/PublishersPage.jsx";
+import PublisherManagePage from "./pages/PublisherManagePage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import RolesPage from "./pages/RolesPage.jsx";
 import ListenPage from "./pages/ListenPage.jsx";
@@ -51,6 +52,7 @@ export default function App() {
       >
         <Route path="/" element={<Navigate to="/publishers" replace />} />
         <Route path="/publishers" element={<PublishersPage />} />
+        <Route path="/publishers/:id" element={<PublisherManagePage />} />
         <Route path="/users" element={<UsersPage user={user} />} />
         <Route path="/roles" element={<RolesPage />} />
         <Route path="/listen/:id" element={<ListenPage />} />
