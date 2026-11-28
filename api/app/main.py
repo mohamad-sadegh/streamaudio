@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app import db
-from app.routers import auth, mediamtx_auth, publishers, users
+from app.routers import auth, device, mediamtx_auth, publishers, users
 
 logging.basicConfig(
     level=logging.INFO,
@@ -84,3 +84,4 @@ app.include_router(auth.router)
 app.include_router(publishers.router)
 app.include_router(users.router)
 app.include_router(mediamtx_auth.router)
+app.include_router(device.router)

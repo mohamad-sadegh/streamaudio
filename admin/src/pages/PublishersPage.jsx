@@ -3,6 +3,16 @@ import { Link } from "react-router-dom";
 import { Publishers } from "../api.js";
 import SecretQrCode, { buildPublishSharePayload } from "../components/SecretQrCode.jsx";
 
+const MODE_LABELS = {
+  idle: "آماده",
+  streaming: "استریم",
+  recording: "ضبط",
+};
+
+function modeLabel(mode) {
+  return MODE_LABELS[mode] || mode || "آماده";
+}
+
 export default function PublishersPage() {
   const [publishers, setPublishers] = useState([]);
   const [username, setUsername] = useState("");
@@ -10,6 +20,7 @@ export default function PublishersPage() {
   const [error, setError] = useState("");
   const [secretReveal, setSecretReveal] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [controlBusyId, setControlBusyId] = useState(null);
 
   const refresh = useCallback(async () => {
     const data = await Publishers.list();
@@ -73,13 +84,27 @@ export default function PublishersPage() {
     }
   }
 
+  async function setMode(pub, mode) {
+    setControlBusyId(pub.id);
+    setError("");
+    try {
+      await Publishers.setDesiredMode(pub.id, mode);
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setControlBusyId(null);
+    }
+  }
+
   return (
     <main className="page">
       <section className="panel">
         <h1>ناشران</h1>
         <p className="muted">
           برای دستگاه‌هایی که صدای زنده منتشر می‌کنند، اعتبارنامه بسازید. فقط مدیران
-          می‌توانند گوش دهند.
+          می‌توانند گوش دهند. از همین صفحه استریم یا ضبط محلی را روی گوشی شروع و
+          متوقف کنید.
         </p>
 
         <form className="create-form" onSubmit={createPublisher}>
@@ -133,36 +158,75 @@ export default function PublishersPage() {
           {publishers.length === 0 ? (
             <p className="muted">هنوز ناشری نیست.</p>
           ) : (
-            publishers.map((pub) => (
-              <article key={pub.id} className="row">
-                <div className="row-main">
-                  <div className="row-title">
-                    <span
-                      className={`dot ${pub.online ? "on" : "off"}`}
-                      title={pub.online ? "زنده" : "آفلاین"}
-                    />
-                    <strong>{pub.username}</strong>
-                    {pub.label ? <span className="tag">{pub.label}</span> : null}
-                    {!pub.enabled ? <span className="tag warn">غیرفعال</span> : null}
+            publishers.map((pub) => {
+              const controlBusy = controlBusyId === pub.id;
+              const canStart = pub.enabled && !controlBusy;
+              return (
+                <article key={pub.id} className="row">
+                  <div className="row-main">
+                    <div className="row-title">
+                      <span
+                        className={`dot ${pub.online ? "on" : "off"}`}
+                        title={pub.online ? "زنده روی مدیا" : "بدون انتشار مدیا"}
+                      />
+                      <strong>{pub.username}</strong>
+                      {pub.label ? <span className="tag">{pub.label}</span> : null}
+                      {!pub.enabled ? <span className="tag warn">غیرفعال</span> : null}
+                      <span
+                        className={`tag ${pub.deviceConnected ? "ok" : ""}`}
+                        title="اتصال سرویس کنترل گوشی"
+                      >
+                        {pub.deviceConnected ? "دستگاه وصل" : "دستگاه قطع"}
+                      </span>
+                      <span className="tag">مطلوب: {modeLabel(pub.desiredMode)}</span>
+                      <span className="tag">واقعی: {modeLabel(pub.actualMode)}</span>
+                    </div>
+                    <p className="mono muted small">{pub.streamPath}</p>
+                    {pub.deviceLastError ? (
+                      <p className="error small">{pub.deviceLastError}</p>
+                    ) : null}
                   </div>
-                  <p className="mono muted small">{pub.streamPath}</p>
-                </div>
-                <div className="row-actions">
-                  <Link className="btn-link" to={`/listen/${pub.id}`}>
-                    گوش دادن
-                  </Link>
-                  <button type="button" className="ghost" onClick={() => toggle(pub)}>
-                    {pub.enabled ? "غیرفعال کردن" : "فعال کردن"}
-                  </button>
-                  <button type="button" className="ghost" onClick={() => rotate(pub.id)}>
-                    تعویض رمز
-                  </button>
-                  <button type="button" className="danger" onClick={() => remove(pub.id)}>
-                    حذف
-                  </button>
-                </div>
-              </article>
-            ))
+                  <div className="row-actions">
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={!canStart || pub.desiredMode === "streaming"}
+                      onClick={() => setMode(pub, "streaming")}
+                    >
+                      شروع استریم
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={!canStart || pub.desiredMode === "recording"}
+                      onClick={() => setMode(pub, "recording")}
+                    >
+                      شروع ضبط
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={controlBusy || pub.desiredMode === "idle"}
+                      onClick={() => setMode(pub, "idle")}
+                    >
+                      توقف
+                    </button>
+                    <Link className="btn-link" to={`/listen/${pub.id}`}>
+                      گوش دادن
+                    </Link>
+                    <button type="button" className="ghost" onClick={() => toggle(pub)}>
+                      {pub.enabled ? "غیرفعال کردن" : "فعال کردن"}
+                    </button>
+                    <button type="button" className="ghost" onClick={() => rotate(pub.id)}>
+                      تعویض رمز
+                    </button>
+                    <button type="button" className="danger" onClick={() => remove(pub.id)}>
+                      حذف
+                    </button>
+                  </div>
+                </article>
+              );
+            })
           )}
         </div>
       </section>

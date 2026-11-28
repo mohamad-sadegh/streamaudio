@@ -30,6 +30,8 @@
 		-Server
 	}
 
+	# /api/* includes REST + device control WebSocket (/api/device/ws).
+	# Caddy reverse_proxy upgrades WebSocket automatically.
 	handle /api/* {
 		reverse_proxy streamaudio-api:3000
 	}

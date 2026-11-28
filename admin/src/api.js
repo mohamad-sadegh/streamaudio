@@ -60,6 +60,11 @@ export const Publishers = {
     api("/api/publishers", { method: "POST", body: { username, label } }),
   update: (id, patch) =>
     api(`/api/publishers/${id}`, { method: "PATCH", body: patch }),
+  setDesiredMode: (id, mode) =>
+    api(`/api/publishers/${id}/desired-mode`, {
+      method: "POST",
+      body: { mode },
+    }),
   rotate: (id) =>
     api(`/api/publishers/${id}/rotate-secret`, { method: "POST", body: {} }),
   remove: (id) => api(`/api/publishers/${id}`, { method: "DELETE" }),

@@ -11,14 +11,24 @@ from psycopg.errors import UniqueViolation
 
 from app import db
 from app.config import get_settings
+from app.control_modes import normalize_mode
 from app.mediamtx import list_paths, path_online_map
 from app.password import hash_password
+from app.control_hub import hub
+from app.routers.device import set_desired_mode
 from app.security import generate_secret, require_admin, sign_listen_token
 
 router = APIRouter(tags=["publishers"])
 logger = logging.getLogger(__name__)
 
 USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{1,31}$")
+
+PUBLISHER_COLUMNS = """
+    id, username, label, stream_path, enabled,
+    desired_mode, actual_mode, device_connected,
+    device_last_seen_at, device_last_error,
+    created_at, updated_at
+"""
 
 
 class CreatePublisherBody(BaseModel):
@@ -29,6 +39,10 @@ class CreatePublisherBody(BaseModel):
 class PatchPublisherBody(BaseModel):
     label: str | None = None
     enabled: bool | None = None
+
+
+class DesiredModeBody(BaseModel):
+    mode: str
 
 
 def public_publisher(
@@ -47,6 +61,11 @@ def public_publisher(
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
         "online": online,
+        "desiredMode": normalize_mode(row.get("desired_mode")) or "idle",
+        "actualMode": normalize_mode(row.get("actual_mode")) or "idle",
+        "deviceConnected": bool(row.get("device_connected")),
+        "deviceLastError": row.get("device_last_error"),
+        "deviceLastSeenAt": row.get("device_last_seen_at"),
         "whipUrl": f"https://{settings.domain}/{stream_path}/whip",
         "whepUrl": f"https://{settings.domain}/{stream_path}/whep",
     }
@@ -58,8 +77,8 @@ def public_publisher(
 @router.get("/api/publishers")
 async def list_publishers(_admin: dict = Depends(require_admin)):
     rows = await db.fetch_all(
-        """
-        SELECT id, username, label, stream_path, enabled, created_at, updated_at
+        f"""
+        SELECT {PUBLISHER_COLUMNS}
         FROM publishers
         ORDER BY created_at DESC
         """
@@ -100,10 +119,10 @@ async def create_publisher(
     try:
         async with db.connection() as conn:
             cur = await conn.execute(
-                """
+                f"""
                 INSERT INTO publishers (id, username, label, secret_hash, stream_path)
                 VALUES (%s, %s, %s, %s, %s)
-                RETURNING id, username, label, stream_path, enabled, created_at, updated_at
+                RETURNING {PUBLISHER_COLUMNS}
                 """,
                 (pub_id, clean_user, label_text, secret_hash, stream_path),
             )
@@ -140,10 +159,44 @@ async def patch_publisher(
         f"""
         UPDATE publishers SET {", ".join(fields)}
         WHERE id = %s
-        RETURNING id, username, label, stream_path, enabled, created_at, updated_at
+        RETURNING {PUBLISHER_COLUMNS}
         """,
         tuple(values),
     )
+    if not row:
+        raise HTTPException(status_code=404, detail="پیدا نشد")
+    if body.enabled is False:
+        await set_desired_mode(publisher_id, "idle", push=True)
+        refreshed = await db.fetch_one(
+            f"SELECT {PUBLISHER_COLUMNS} FROM publishers WHERE id = %s",
+            (publisher_id,),
+        )
+        if refreshed:
+            row = refreshed
+    return {"publisher": public_publisher(row)}
+
+
+@router.post("/api/publishers/{publisher_id}/desired-mode")
+async def set_publisher_desired_mode(
+    publisher_id: str,
+    body: DesiredModeBody,
+    _admin: dict = Depends(require_admin),
+):
+    mode = normalize_mode(body.mode)
+    if mode is None:
+        raise HTTPException(
+            status_code=400,
+            detail="حالت نامعتبر است — idle، streaming یا recording",
+        )
+    existing = await db.fetch_one(
+        f"SELECT {PUBLISHER_COLUMNS} FROM publishers WHERE id = %s",
+        (publisher_id,),
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="پیدا نشد")
+    if mode != "idle" and not existing["enabled"]:
+        raise HTTPException(status_code=403, detail="ناشر غیرفعال است")
+    row = await set_desired_mode(publisher_id, mode, push=True)
     if not row:
         raise HTTPException(status_code=404, detail="پیدا نشد")
     return {"publisher": public_publisher(row)}
@@ -154,15 +207,18 @@ async def rotate_secret(publisher_id: str, _admin: dict = Depends(require_admin)
     secret = generate_secret(32)
     secret_hash = hash_password(secret)
     row = await db.fetch_one(
-        """
-        UPDATE publishers SET secret_hash = %s, updated_at = NOW()
+        f"""
+        UPDATE publishers SET secret_hash = %s, updated_at = NOW(),
+          desired_mode = 'idle', device_connected = FALSE
         WHERE id = %s
-        RETURNING id, username, label, stream_path, enabled, created_at, updated_at
+        RETURNING {PUBLISHER_COLUMNS}
         """,
         (secret_hash, publisher_id),
     )
     if not row:
         raise HTTPException(status_code=404, detail="پیدا نشد")
+    # Push idle so a still-connected phone stops; next reconnect must use new secret
+    await hub.push_desired(publisher_id, "idle")
     return {"publisher": public_publisher(row, secret)}
 
 

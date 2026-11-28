@@ -115,8 +115,17 @@ streamaudio://publish?u=device1&s=<shown-once>&w=https%3A%2F%2FDOMAIN%2Flive%2F{
 
 1. Open the app → **Live**
 2. Either scan the admin QR, or tap **Copy share link** in admin then **Paste share link** in the app
-3. Tap **Go live** (mic + notification permission)
-4. In admin, open **Listen** on that publisher to hear the stream
+3. The app keeps a persistent **control service** synced with the admin panel over WebSocket (`wss://DOMAIN/api/device/ws`, same `Bearer username:secret` as WHIP)
+4. Tap **Go live** (mic + notification permission), or start/stop from the admin publishers page
+5. In admin, open **Listen** on that publisher to hear the stream
+
+### Remote start/stop (desired state)
+
+Admin and phone share exclusive modes: `idle` | `streaming` | `recording`.
+
+- Admin: **Publishers** → شروع استریم / شروع ضبط / توقف (`POST /api/publishers/{id}/desired-mode`)
+- Phone applies desired mode when connected; offline commands apply on next reconnect
+- Reverse proxy must allow WebSocket upgrade on `/api/` (Caddy does by default; nginx sample includes `Upgrade` / `Connection` headers)
 
 ## Admin live listen
 

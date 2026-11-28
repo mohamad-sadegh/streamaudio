@@ -444,6 +444,11 @@ label {
   color: var(--muted);
 }
 
+.tag.ok {
+  border-color: rgba(46, 196, 162, 0.45);
+  color: var(--accent-2);
+}
+
 .tag.warn {
   color: var(--warn);
   border-color: rgba(230, 179, 90, 0.4);

@@ -92,6 +92,17 @@ async def migrate() -> None:
             );
 
             CREATE INDEX IF NOT EXISTS publishers_enabled_idx ON publishers (enabled);
+
+            ALTER TABLE publishers
+              ADD COLUMN IF NOT EXISTS desired_mode TEXT NOT NULL DEFAULT 'idle';
+            ALTER TABLE publishers
+              ADD COLUMN IF NOT EXISTS actual_mode TEXT NOT NULL DEFAULT 'idle';
+            ALTER TABLE publishers
+              ADD COLUMN IF NOT EXISTS device_connected BOOLEAN NOT NULL DEFAULT FALSE;
+            ALTER TABLE publishers
+              ADD COLUMN IF NOT EXISTS device_last_seen_at TIMESTAMPTZ;
+            ALTER TABLE publishers
+              ADD COLUMN IF NOT EXISTS device_last_error TEXT;
             """
         )
     logger.info("Migrations applied")
